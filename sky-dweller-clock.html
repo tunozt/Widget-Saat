@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sky-Dweller Rhyme Clock</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+    flex-direction: column;
+    gap: 30px;
+  }
+  .container {
+    display: flex;
+    gap: 50px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .watch-wrapper {
+    position: relative;
+    width: 340px;
+    height: 340px;
+  }
+
+  /* Fluted Bezel */
+  .bezel-outer {
+    position: absolute;
+    top: -22px; left: -22px;
+    width: 384px; height: 384px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      #c8a96e,#f0d080,#c8a96e,#e8c060,#c8a96e,#f0d080,
+      #c8a96e,#e8c060,#c8a96e,#f0d080,#c8a96e,#e8c060,
+      #c8a96e,#f0d080,#c8a96e,#e8c060,#c8a96e,#f0d080,
+      #c8a96e,#e8c060,#c8a96e,#f0d080,#c8a96e,#e8c060,
+      #c8a96e,#f0d080,#c8a96e,#e8c060,#c8a96e,#f0d080,#c8a96e
+    );
+    z-index: 1;
+    box-shadow: 0 0 30px rgba(200,169,110,0.3), inset 0 0 10px rgba(0,0,0,0.5);
+  }
+  .bezel-fluted {
+    position: absolute;
+    top: -22px; left: -22px;
+    width: 384px; height: 384px;
+    border-radius: 50%;
+    z-index: 2;
+    overflow: hidden;
+  }
+  .bezel-fluted::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: repeating-conic-gradient(
+      from 0deg,
+      rgba(255,255,255,0.55) 0deg 2.8deg,
+      rgba(120,80,20,0.45) 2.8deg 5.6deg
+    );
+  }
+
+  .case-ring {
+    position: absolute;
+    top: -8px; left: -8px;
+    width: 356px; height: 356px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #d0d0d0 0%, #888 60%, #555 100%);
+    z-index: 3;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  }
+
+  .dial {
+    position: absolute;
+    top: 0; left: 0;
+    width: 340px; height: 340px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 30%, #1a1a1a 0%, #000 70%);
+    z-index: 4;
+    overflow: hidden;
+  }
+
+  .month-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250px; height: 250px;
+    border-radius: 50%;
+    border: 1.5px solid #2a2a2a;
+    z-index: 5;
+  }
+
+  .logo-area {
+    position: absolute;
+    top: 48px; left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 9;
+  }
+  .brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 12px;
+    color: #e8d080;
+    letter-spacing: 2px;
+    display: block;
+    margin-top: 1px;
+  }
+
+  .sub-text {
+    position: absolute;
+    bottom: 105px; left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 9;
+    white-space: nowrap;
+  }
+  .sub-text .l1 { font-family:'Playfair Display',serif; font-size:9px; color:#aaa; letter-spacing:3px; }
+  .sub-text .l2 { font-size:5.5px; color:#666; letter-spacing:2px; font-weight:600; text-transform:uppercase; }
+
+  .date-window {
+    position: absolute;
+    top: 50%; right: 42px;
+    transform: translateY(-50%);
+    width: 36px; height: 28px;
+    background: #fff;
+    border: 2px solid #555;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .date-window span {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #000;
+  }
+
+  canvas { position:absolute; top:0; left:0; border-radius:50%; pointer-events:none; }
+  #ring24Canvas { z-index: 6; }
+  #watchCanvas  { z-index: 11; }
+
+  /* Rhyme Card */
+  .rhyme-card {
+    width: 320px;
+    background: #000;
+    border: 1px solid #c8a96e;
+    border-radius: 4px;
+    padding: 28px 24px 20px;
+    box-shadow: 0 0 40px rgba(200,169,110,0.15);
+    position: relative;
+  }
+  .rhyme-card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg,transparent,#c8a96e,transparent);
+  }
+  .rhyme-header {
+    font-family:'Playfair Display',serif;
+    font-size:10px; letter-spacing:4px; color:#c8a96e;
+    text-transform:uppercase; margin-bottom:20px; text-align:center;
+  }
+  .rhyme-text {
+    font-family:'Playfair Display',serif;
+    font-size:15px; color:#fff; line-height:2;
+    text-align:center; min-height:120px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+  }
+  .rhyme-text .line { opacity:0; animation:fadeIn 0.5s forwards; }
+  .highlight { color:#f0d080; font-weight:700; }
+  @keyframes fadeIn {
+    from { opacity:0; transform:translateY(6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .date-footer {
+    margin-top:22px; text-align:center;
+    font-family:'Montserrat',sans-serif; font-size:11px;
+    color:#666; letter-spacing:2px;
+    border-top:1px solid #222; padding-top:14px;
+  }
+  .date-footer span { color:#c8a96e; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+    <div class="watch-wrapper">
+      <div class="bezel-outer"></div>
+      <div class="bezel-fluted"></div>
+      <div class="case-ring"></div>
+
+      <div class="dial">
+        <div class="month-ring" id="monthRing"></div>
+        <canvas id="ring24Canvas" width="340" height="340"></canvas>
+        <div id="indices"></div>
+
+        <div class="logo-area">
+          <svg width="22" height="16" viewBox="0 0 40 30" fill="#e8d080">
+            <polygon points="20,2 26,14 32,6 30,18 10,18 8,6 14,14"/>
+            <rect x="8" y="18" width="24" height="4" rx="1"/>
+          </svg>
+          <span class="brand-name">ROLEX</span>
+        </div>
+
+        <div class="sub-text">
+          <div class="l1">SKY-DWELLER</div>
+          <div class="l2">Oyster Perpetual</div>
+          <div class="l2" style="font-size:5px;">Superlative Chronometer</div>
+          <div class="l2" style="font-size:5px;">Officially Certified</div>
+        </div>
+
+        <div class="date-window"><span id="dateNum">1</span></div>
+      </div>
+
+      <canvas id="watchCanvas" width="340" height="340"></canvas>
+
+      <!-- Crown winder -->
+      <div style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:14px;height:28px;background:linear-gradient(90deg,#888,#ccc,#888);border-radius:0 4px 4px 0;z-index:15;"></div>
+    </div>
+  </div>
+
+  <!-- Rhyme Card -->
+  <div class="rhyme-card">
+    <div class="rhyme-header">⬥ Sky-Dweller Rhyme Clock ⬥</div>
+    <div class="rhyme-text" id="rhymeText"></div>
+    <div class="date-footer" id="dateFooter">── <span>--/--/----</span> ──</div>
+  </div>
+
+</div>
+
+<script>
+const MONTHS_TR = ['OCA','ŞUB','MAR','NİS','MAY','HAZ','TEM','AĞU','EYL','EKİ','KAS','ARA'];
+const CX = 170, CY = 170;
+
+// ─── Month Ring — no labels, just tick marks at each month position ───
+const monthRingEl = document.getElementById('monthRing');
+for (let i = 0; i < 12; i++) {
+  const angleDeg = (i / 12) * 360 - 90;
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:absolute; top:0; left:50%;
+    width:2px; height:8px; margin-left:-1px;
+    background:#444; border-radius:1px;
+    transform-origin:1px 125px;
+    transform:rotate(${angleDeg}deg);
+  `;
+  monthRingEl.appendChild(el);
+}
+
+// ─── Month Indicator (red box over current month) ───
+const monthIndicatorEl = document.createElement('div');
+monthIndicatorEl.style.cssText = `
+  position:absolute; width:24px; height:12px;
+  background:#cc0000; border-radius:2px; z-index:10;
+  box-shadow:0 0 8px rgba(200,0,0,0.9);
+`;
+document.querySelector('.dial').appendChild(monthIndicatorEl);
+
+function updateMonthIndicator(month) {
+  // month+1 = gerçek ay numarası (1=OCA...12=ARA)
+  // Saat kadranındaki pozisyon: ay numarası * 30° (saat 1=30°, 2=60°, 3=90°...)
+  // 0° = 12 o'clock, clockwise
+  const realMonth = month + 1; // 1-12
+  const angleDeg = realMonth * 30 - 90; // saat 3 = 90° - 90° offset = 0° sağ
+  const rad = angleDeg * Math.PI / 180;
+  const r = 138;
+  const x = CX + r * Math.cos(rad);
+  const y = CY + r * Math.sin(rad);
+  monthIndicatorEl.style.left = `${x - 12}px`;
+  monthIndicatorEl.style.top  = `${y - 6}px`;
+  monthIndicatorEl.style.transform = `rotate(${angleDeg + 90}deg)`;
+}
+
+// ─── Hour baton indices — long & thin ───
+const idxContainer = document.getElementById('indices');
+for (let i = 0; i < 12; i++) {
+  const angleDeg = (i / 12) * 360 - 90;
+  const rad = angleDeg * Math.PI / 180;
+  const rOuter = 155, rInner = 118;
+  const midR = (rOuter + rInner) / 2;
+  const len = rOuter - rInner;
+  const x = CX + midR * Math.cos(rad);
+  const y = CY + midR * Math.sin(rad);
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:absolute;
+    width:${len}px; height:3px;
+    background:#ffffff;
+    border-radius:1px;
+    left:${x - len/2}px; top:${y - 1.5}px;
+    transform:rotate(${angleDeg + 90}deg);
+    transform-origin:center center;
+    box-shadow:0 0 5px rgba(255,255,255,0.4);
+  `;
+  idxContainer.appendChild(el);
+}
+// Minute dots
+for (let i = 0; i < 60; i++) {
+  if (i % 5 === 0) continue;
+  const angleDeg = (i / 60) * 360 - 90;
+  const rad = angleDeg * Math.PI / 180;
+  const r = 149;
+  const x = CX + r * Math.cos(rad);
+  const y = CY + r * Math.sin(rad);
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:absolute; width:2px; height:2px;
+    background:#555; border-radius:50%;
+    left:${x-1}px; top:${y-1}px;
+  `;
+  idxContainer.appendChild(el);
+}
+
+// ─── 24-hour rotating ring ───
+const ring24Canvas = document.getElementById('ring24Canvas');
+const rCtx = ring24Canvas.getContext('2d');
+
+// Ring: smaller, centered lower (offset downward by 30px from dial center)
+const RING_OX = 0, RING_OY = 30; // offset from CX,CY
+const R_OUT = 72, R_IN = 54, R_NUM = 63;
+
+function drawRing24(currentH24Decimal) {
+  rCtx.clearRect(0, 0, 340, 340);
+
+  const ox = CX + RING_OX;
+  const oy = CY + RING_OY;
+
+  // Rotate the ring so current hour is at top of this sub-ring
+  const rotDeg = -(currentH24Decimal / 24) * 360;
+  const rotRad = rotDeg * Math.PI / 180;
+
+  // Subtle ring border
+  rCtx.save();
+  rCtx.beginPath();
+  rCtx.arc(ox, oy, R_OUT, 0, Math.PI * 2);
+  rCtx.strokeStyle = '#333';
+  rCtx.lineWidth = 1;
+  rCtx.stroke();
+  rCtx.beginPath();
+  rCtx.arc(ox, oy, R_IN, 0, Math.PI * 2);
+  rCtx.stroke();
+  rCtx.restore();
+
+  rCtx.save();
+  rCtx.translate(ox, oy);
+  rCtx.rotate(rotRad);
+
+  for (let h = 0; h < 24; h++) {
+    const aDeg = (h / 24) * 360 - 90;
+    const aRad = aDeg * Math.PI / 180;
+    const nx = R_NUM * Math.cos(aRad);
+    const ny = R_NUM * Math.sin(aRad);
+
+    if (h % 2 === 0) {
+      rCtx.save();
+      rCtx.translate(nx, ny);
+      rCtx.rotate(aRad + Math.PI / 2);
+      rCtx.font = '700 9px Montserrat, sans-serif';
+      rCtx.fillStyle = '#dddddd';
+      rCtx.textAlign = 'center';
+      rCtx.textBaseline = 'middle';
+      rCtx.fillText(h === 0 ? '24' : String(h), 0, 0);
+      rCtx.restore();
+    } else {
+      rCtx.beginPath();
+      rCtx.arc(nx, ny, 1.5, 0, Math.PI * 2);
+      rCtx.fillStyle = '#555';
+      rCtx.fill();
+    }
+  }
+
+  rCtx.restore();
+
+  // Fixed triangle pointer ABOVE the ring outer edge, pointing downward
+  const triCX  = ox;
+  const triTop = oy - R_OUT - 14;  // base of triangle (above ring)
+  const triBot = oy - R_OUT - 1;   // tip (just touching outer edge)
+  const triHW  = 6;
+
+  rCtx.save();
+  rCtx.beginPath();
+  rCtx.moveTo(triCX - triHW, triTop); // top-left (base)
+  rCtx.lineTo(triCX + triHW, triTop); // top-right (base)
+  rCtx.lineTo(triCX, triBot);         // bottom tip
+  rCtx.closePath();
+  rCtx.fillStyle = '#ffffff';
+  rCtx.fill();
+  rCtx.strokeStyle = '#cc0000';
+  rCtx.lineWidth = 2;
+  rCtx.stroke();
+  rCtx.restore();
+}
+
+// ─── Main hands canvas ───
+const canvas = document.getElementById('watchCanvas');
+const ctx = canvas.getContext('2d');
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function drawCenter() {
+  ctx.save();
+  ctx.fillStyle = '#c8a96e';
+  ctx.beginPath();
+  ctx.arc(CX, CY, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(CX, CY, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ─── Rhyme ───
+function generateRhyme(h, m) {
+  const h12 = h % 12 || 12;
+  const mStr = String(m).padStart(2, '0');
+  const period = h < 12 ? 'sabah' : h < 17 ? 'öğleden sonra' : 'akşam';
+  const timeStr = `${h12}:${mStr}`;
+  const rhymes = [
+    [`Zamanın kıyısında dur bir an,`, `Kadrana bak: <span class="highlight">${timeStr}</span> gösterir zaman.`, `Saatler akar, anlar koşar gider,`, `Ama bu an senindir, sonsuz heder.`],
+    [`Altın elleri döner usulca,`, `<span class="highlight">${timeStr}</span> ${period} tam da.`, `Jubilee bileklikte ışık oynar,`, `Zaman bir armağan, geçer ama.`],
+    [`Siyah kadranda yıldızlar gibi,`, `<span class="highlight">${timeStr}</span> — ${period} sesi.`, `Sky-Dweller taşır iki zaman,`, `Biri sende, biri gökyüzünde hepi.`],
+    [`İşte <span class="highlight">${timeStr}</span>, işte şimdi,`, `${period.charAt(0).toUpperCase() + period.slice(1)} vakti, ruhu diri.`, `Bezel altın, kadran derin,`, `Zaman durur mu? Hayır, sen geri.`],
+    [`Gökyüzü sakin, ${period} hâlâ,`, `<span class="highlight">${timeStr}</span> fısıldar yavaşça.`, `İki kıta arasında bir saat,`, `Ama kalp tek yerde, sensiz olmaz.`],
+  ];
+  return rhymes[h % rhymes.length];
+}
+
+let lastMinute = -1;
+
+function drawHand(angleDeg, length, width, color) {
+  // angleDeg: 0 = 12 o'clock, clockwise
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(CX, CY);
+  ctx.lineTo(CX + Math.cos(rad) * length, CY + Math.sin(rad) * length);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function updateClock() {
+  const now   = new Date();
+  const tz    = 'Europe/Istanbul';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz,
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hourCycle: 'h23'
+  }).formatToParts(now);
+  const get  = (type) => parseInt(parts.find(p => p.type === type).value);
+  const h    = get('hour');
+  const m    = get('minute');
+  const s    = get('second');
+  const month = get('month') - 1;
+  const day   = get('day');
+  const year  = get('year');
+
+  // Angles: 0° = 12 o'clock, each second/minute = 6°, each hour = 30°
+  const secDeg = s * 6;
+  const minDeg = m * 6 + s * 0.1;
+  const hrDeg  = (h % 12) * 30 + m * 0.5;
+
+  // Date window & footer
+  document.getElementById('dateNum').textContent = day;
+  const dd  = String(day).padStart(2,'0');
+  const mm2 = String(month + 1).padStart(2,'0');
+  document.getElementById('dateFooter').innerHTML = `── <span>${dd}/${mm2}/${year}</span> ──`;
+
+  // Month indicator & 24hr ring
+  updateMonthIndicator(month);
+  drawRing24(h + m / 60 + s / 3600);
+
+  // ── Draw hands ──
+  ctx.clearRect(0, 0, 340, 340);
+
+  // Hour hand
+  const hRad = (hrDeg - 90) * Math.PI / 180;
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(hRad + Math.PI / 2);  // +90° so "up" = 12
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, -4.5, -85, 9, 100, 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, -55, 11, 0, Math.PI * 2);
+  ctx.fillStyle = '#000';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Minute hand
+  const mRad = (minDeg - 90) * Math.PI / 180;
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(mRad + Math.PI / 2);
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, -3, -138, 6, 158, 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Second hand
+  const sRad = (secDeg - 90) * Math.PI / 180;
+  ctx.save();
+  ctx.strokeStyle = '#cc0000';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(CX - Math.cos(sRad) * 40, CY - Math.sin(sRad) * 40);
+  ctx.lineTo(CX + Math.cos(sRad) * 150, CY + Math.sin(sRad) * 150);
+  ctx.stroke();
+  ctx.fillStyle = '#cc0000';
+  ctx.beginPath();
+  ctx.arc(CX - Math.cos(sRad) * 30, CY - Math.sin(sRad) * 30, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  drawCenter();
+
+  // Rhyme update
+  if (m !== lastMinute) {
+    lastMinute = m;
+    const lines = generateRhyme(h, m);
+    const rhymeEl = document.getElementById('rhymeText');
+    rhymeEl.innerHTML = '';
+    lines.forEach((line, i) => {
+      const div = document.createElement('div');
+      div.className = 'line';
+      div.innerHTML = line;
+      div.style.animationDelay = `${i * 0.2}s`;
+      rhymeEl.appendChild(div);
+    });
+  }
+}
+
+lastMinute = -1;
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
